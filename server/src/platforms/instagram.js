@@ -65,20 +65,31 @@ class InstagramPlatform extends BasePlatform {
     // Strategy 1: If RapidAPI key is available, query high-speed resolver first
     if (apiKey) {
       try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 8000);
+        let res = null;
+        for (let attempt = 1; attempt <= 2; attempt++) {
+          try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 6500);
 
-        const res = await fetch(`https://${apiHost}/download?url=${encodeURIComponent(normalizedUrl)}`, {
-          signal: controller.signal,
-          headers: {
-            'x-rapidapi-key': apiKey,
-            'x-rapidapi-host': apiHost
+            res = await fetch(`https://${apiHost}/download?url=${encodeURIComponent(normalizedUrl)}`, {
+              signal: controller.signal,
+              headers: {
+                'x-rapidapi-key': apiKey,
+                'x-rapidapi-host': apiHost
+              }
+            });
+            clearTimeout(timeoutId);
+
+            if (res && res.ok) break;
+            if (attempt < 2) await new Promise(r => setTimeout(r, 700));
+          } catch (e) {
+            if (attempt < 2) await new Promise(r => setTimeout(r, 700));
           }
-        });
-        clearTimeout(timeoutId);
+        }
 
-        if (res.ok) {
+        if (res && res.ok) {
           const json = await res.json();
+          logger.info('RapidAPI response ok:', { status: res.status, success: json.success, hasMedias: Boolean(json.data?.medias?.length) });
           if (json.data && json.data.medias && Array.isArray(json.data.medias)) {
             const videoItem = json.data.medias.find(m => m.type === 'video' || m.url?.includes('.mp4') || m.extension === 'mp4') || json.data.medias[0];
             if (videoItem && videoItem.url) {
@@ -106,6 +117,9 @@ class InstagramPlatform extends BasePlatform {
               }
             }
           }
+        } else if (res) {
+          const errText = await res.text().catch(() => '');
+          logger.warn('RapidAPI response status not ok:', { status: res.status, body: errText.slice(0, 200) });
         }
       } catch (err) {
         logger.warn('RapidAPI resolution attempt skipped or timed out:', { error: err.message });
