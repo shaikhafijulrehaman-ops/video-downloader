@@ -11,7 +11,7 @@ const API_BASE = '/api';
  */
 export async function processVideoUrl(url) {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 11000);
+  const timeoutId = setTimeout(() => controller.abort(), 18000);
 
   try {
     const response = await fetch(`${API_BASE}/process`, {

@@ -28,11 +28,11 @@ async function processVideo(req, res, next) {
       });
     }
 
-    // Step 2: Extract clean preview metadata with overall 9s timeout
+    // Step 2: Extract clean preview metadata with overall 16s timeout
     const preview = await Promise.race([
       platform.getPreview(validation.normalizedUrl, validation),
       new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Processing request timed out')), 9000)
+        setTimeout(() => reject(new Error('Processing request timed out')), 16000)
       )
     ]);
 
